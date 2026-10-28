@@ -1,0 +1,27 @@
+# Local-only proxy: plain HTTP on 127.0.0.1, see docker-compose.local.yml.
+{
+	auto_https off
+	admin off
+}
+
+:80 {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	@api path /api/*
+	handle @api {
+		request_body {
+			max_size 8MB
+		}
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+}
