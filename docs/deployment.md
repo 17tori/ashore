@@ -24,6 +24,19 @@ curl https://домен/api/health/ready
 Все переменные перечислены в `.env.example`. Обязательные: `PUBLIC_BASE_URL`, `POSTGRES_PASSWORD`,
 `ENCRYPTION_KEYS`, `COOKIE_SECURE=true` в продакшене. Интеграции hh.ru, AI и Telegram необязательны.
 
+## Личная сборка для одного компьютера (Windows)
+
+Для запуска на своём компьютере без сервера и домена: `docker-compose.local.yml`, `Caddyfile.local`
+и скрипты `start-ashore.bat`, `stop-ashore.bat`, `backup-ashore.bat` (PowerShell-код в `windows/`).
+Нужен только Docker Desktop. Пошаговая инструкция для пользователя: `README-WINDOWS.txt`.
+
+* Сервис слушает только `127.0.0.1:8080` по HTTP, поэтому `COOKIE_SECURE=false`.
+* При первом запуске `start-ashore.bat` создаёт `.env.local` со случайными `POSTGRES_PASSWORD` и
+  `ENCRYPTION_KEYS`. Этот файл нельзя терять: без него данные не расшифровать.
+* `backup-ashore.bat` кладёт в `backups\<дата>\` дамп базы (`pg_dump -Fc`) и копию `.env.local`.
+  Восстановление: `pg_restore -U ashore -d ashore --clean` внутри контейнера postgres.
+* Telegram-бот локально не работает: webhook требует публичного HTTPS-адреса.
+
 ## Telegram
 
 1. Создать бота у @BotFather, записать `TELEGRAM_BOT_TOKEN` и `TELEGRAM_BOT_USERNAME`.

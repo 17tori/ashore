@@ -111,6 +111,7 @@ class OpenAICompatibleProvider:
 class AnthropicProvider:
     name = "anthropic"
     DEFAULT_MODEL = "claude-opus-5-5"
+    THINKING_HEADROOM = 12000
 
     def __init__(self, settings: Settings):
         import anthropic
@@ -125,16 +126,19 @@ class AnthropicProvider:
     async def complete_json(self, *, system: str, user: str, max_tokens: int = 4000) -> LLMResult:
         import anthropic
 
+        request: dict[str, Any] = {
+            "model": self.model,
+            # Current models think adaptively and thinking counts against max_tokens: leave room for the answer.
+            "max_tokens": max_tokens + self.THINKING_HEADROOM,
+            "system": system,
+            "messages": [{"role": "user", "content": user}],
+        }
+        if "haiku" not in self.model:
+            # Server-side fallback when the primary model declines (stop_reason "refusal"). Haiku has none.
+            request["betas"] = ["server-side-fallback-2026-07-01"]
+            request["fallbacks"] = "default"
         try:
-            response = await self._client.beta.messages.create(
-                model=self.model,
-                max_tokens=max_tokens,
-                system=system,
-                messages=[{"role": "user", "content": user}],
-                # Server-side fallback when the primary model declines (stop_reason "refusal").
-                betas=["server-side-fallback-2026-07-01"],
-                fallbacks="default",
-            )
+            response = await self._client.beta.messages.create(**request)
         except anthropic.RateLimitError as exc:
             raise AIError("AI rate limited") from exc
         except anthropic.APIStatusError as exc:
