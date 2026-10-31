@@ -1,5 +1,6 @@
 "use client";
 
+import clsx from "clsx";
 import { Star, Upload } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -21,8 +22,9 @@ export default function ResumesPage() {
   const [paste, setPaste] = useState({ title: "", text: "" });
   const [useAi, setUseAi] = useState(false);
 
-  const upload = async () => {
-    const f = file.current?.files?.[0];
+  const [dragging, setDragging] = useState(false);
+
+  const upload = async (f: File | undefined) => {
     if (!f) return;
     const body = new FormData();
     body.append("file", f);
@@ -34,6 +36,8 @@ export default function ResumesPage() {
     } catch (e) {
       toast(errorMessage(e), "bad");
       setBusy(false);
+      // Let the same file be picked again after a failed upload.
+      if (file.current) file.current.value = "";
     }
   };
 
@@ -86,9 +90,34 @@ export default function ResumesPage() {
             <Card>
               <CardTitle>Загрузить файл</CardTitle>
               <p className="mb-3 text-sm text-muted">PDF, DOCX или TXT до 5 МБ. На hh.ru: «Мои резюме» → резюме → «Скачать».</p>
-              <input ref={file} type="file" accept=".pdf,.docx,.txt" className="mb-3 block w-full text-sm" />
-              <Button onClick={upload} loading={busy}>
-                <Upload className="size-4" /> Загрузить
+              <input
+                ref={file}
+                type="file"
+                accept=".pdf,.docx,.txt"
+                className="sr-only"
+                tabIndex={-1}
+                onChange={(e) => upload(e.target.files?.[0])}
+              />
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragging(true);
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragging(false);
+                  upload(e.dataTransfer.files[0]);
+                }}
+                className={clsx(
+                  "mb-3 rounded-lg border-2 border-dashed p-4 text-center text-sm text-muted",
+                  dragging ? "border-brand bg-brand/5" : "border-border",
+                )}
+              >
+                Перетащите файл сюда или нажмите кнопку
+              </div>
+              <Button onClick={() => file.current?.click()} loading={busy}>
+                <Upload className="size-4" /> Выбрать файл
               </Button>
             </Card>
             <Card>

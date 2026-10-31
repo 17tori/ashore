@@ -32,3 +32,4 @@ uploads/
 .DS_Store
 .idea/
 .vscode/
+dump.rdb
